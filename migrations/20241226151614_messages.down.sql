@@ -1,0 +1,9 @@
+
+ALTER TABLE tasks
+DROP CONSTRAINT IF EXISTS fk_user_id;
+
+ALTER TABLE tasks
+DROP COLUMN IF EXISTS user_id;
+
+
+DROP TABLE IF EXISTS tasks;
