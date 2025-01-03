@@ -29,7 +29,6 @@ func (h *TaskHandler) GetTasksUserId(_ context.Context, req tasks.GetTasksUserId
 		return nil, err
 	}
 
-	// Формируем ответ для gRPC
 	var response tasks.GetTasksUserId200JSONResponse
 
 	// Перебираем задачи и заполняем ответ
