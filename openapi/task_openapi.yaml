@@ -1,22 +1,32 @@
 openapi: 3.0.0
 info:
-  title: API
+  title: Task Management API
   version: 1.0.0
 paths:
-  /tasks:
+  /tasks/{user_id}:
     get:
-      summary: Get all tasks
+      summary: Get tasks for a specific user
       tags:
         - tasks
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: The ID of the user
+          schema:
+            type: integer
       responses:
         '200':
-          description: A list of tasks
+          description: A list of tasks for the specified user
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Task'
+        '404':
+          description: User not found or no tasks for this user
+  /tasks:
     post:
       summary: Create a new task
       tags:
@@ -27,7 +37,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Task'
+              $ref: '#/components/schemas/CreateTask'
       responses:
         '201':
           description: The created task
@@ -45,7 +55,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Task'
+              $ref: '#/components/schemas/UpdateTask'
       responses:
         '200':
           description: The updated task
@@ -60,7 +70,7 @@ paths:
       tags:
         - tasks
       requestBody:
-        description: The task to delete (ID is included in the body)
+        description: The task to delete
         required: true
         content:
           application/json:
@@ -79,13 +89,40 @@ components:
       properties:
         id:
           type: integer
-          format: uint 
         task:
           type: string
         is_done:
           type: boolean
         user_id:
           type: integer
+
+    CreateTask:
+      type: object
+      properties:
+        task:
+          type: string
+        is_done:
+          type: boolean
+        user_id:
+          type: integer
+      required:
+        - task
+        - user_id
+
+    UpdateTask:
+      type: object
+      properties:
+        id:
+          type: integer
+        task:
+          type: string
+        is_done:
+          type: boolean
+        user_id:
+          type: integer
+      required:
+        - id
+        - task
 
     DeleteTask:
       type: object
@@ -94,9 +131,11 @@ components:
           type: integer
         user_id:
           type: integer
-          description: The unique identifier of the task to delete
-          example: 123
       required:
         - id
+        - user_id
+
+
+
 
 

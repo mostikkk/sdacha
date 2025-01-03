@@ -84,7 +84,7 @@ func (h *UserHandler) PutUsers(_ context.Context, request users.PutUsersRequestO
 		Pass:  *userRequest.Password,
 	}
 
-	updatedUser, err := h.Service.PatchUserByID(uint(id), userToUpdate)
+	updatedUser, err := h.Service.PutUserByID(uint(id), userToUpdate)
 	if err != nil {
 		return nil, err
 	}

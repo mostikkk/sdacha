@@ -24,7 +24,7 @@ type User struct {
 // DeleteUsersParams defines parameters for DeleteUsers.
 type DeleteUsersParams struct {
 	// UserId ID of the user to delete
-	UserId int `form:"userId" json:"userId"`
+	UserId uint `form:"userId" json:"userId"`
 }
 
 // PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
