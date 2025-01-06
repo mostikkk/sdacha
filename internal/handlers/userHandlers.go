@@ -61,21 +61,21 @@ func (h *UserHandler) PostUsers(_ context.Context, request users.PostUsersReques
 }
 
 // DeleteUser реализует users.StrictServerInterface.
-func (h *UserHandler) DeleteUsers(ctx context.Context, request users.DeleteUsersRequestObject) (users.DeleteUsersResponseObject, error) {
-	id := request.Params.UserId
+func (h *UserHandler) DeleteUsersUserId(ctx context.Context, request users.DeleteUsersUserIdRequestObject) (users.DeleteUsersUserIdResponseObject, error) {
+	id := request.UserId
 
 	err := h.Service.DeleteUserByID(uint(id))
 	if err != nil {
 		return nil, err
 	}
 
-	response := users.DeleteUsers204Response{}
+	response := users.DeleteUsersUserId204Response{}
 
 	return response, nil
 }
 
 // PutUser реализует users.StrictServerInterface.
-func (h *UserHandler) PutUsers(_ context.Context, request users.PutUsersRequestObject) (users.PutUsersResponseObject, error) {
+func (h *UserHandler) PutUsersUserId(_ context.Context, request users.PutUsersUserIdRequestObject) (users.PutUsersUserIdResponseObject, error) {
 	id := *request.Body.Id
 	userRequest := request.Body
 
@@ -89,7 +89,7 @@ func (h *UserHandler) PutUsers(_ context.Context, request users.PutUsersRequestO
 		return nil, err
 	}
 
-	response := users.PutUsers200JSONResponse{
+	response := users.PutUsersUserId200JSONResponse{
 		Id:       &updatedUser.ID,
 		Email:    &updatedUser.Email,
 		Password: &updatedUser.Pass,

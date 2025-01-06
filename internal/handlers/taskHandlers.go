@@ -3,7 +3,8 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"obuch/internal/taskService" // Импортируем наш сервис
+	"log"
+	"obuch/internal/taskService"
 	"obuch/internal/web/tasks"
 )
 
@@ -11,128 +12,110 @@ type TaskHandler struct {
 	Service *taskService.TaskService
 }
 
-// NewHandler создает новый Handler с привязанным сервисом задач
+// NewTaskHandler создает новый TaskHandler с привязанным сервисом задач
 func NewTaskHandler(service *taskService.TaskService) *TaskHandler {
 	return &TaskHandler{
 		Service: service,
 	}
 }
 
-// GetTasksByUserID реализует tasks.StrictServerInterface.
+// GetTasksUserId реализует tasks.StrictServerInterface.
 func (h *TaskHandler) GetTasksUserId(_ context.Context, req tasks.GetTasksUserIdRequestObject) (tasks.GetTasksUserIdResponseObject, error) {
-	// Извлекаем userID из запроса
 	userID := req.UserId
 
-	// Получаем задачи для указанного пользователя из сервиса
 	userTasks, err := h.Service.GetTasksByUserID(uint(userID))
 	if err != nil {
-		return nil, err
+		log.Printf("Error fetching tasks for user %d: %v", userID, err)
+		return tasks.GetTasksUserId404Response{}, nil
 	}
 
 	var response tasks.GetTasksUserId200JSONResponse
-
-	// Перебираем задачи и заполняем ответ
 	for _, tsk := range userTasks {
-		task := tasks.Task{
-			Id:     &tsk.UserID,
+		response = append(response, tasks.Task{
+			Id:     &tsk.ID,
 			Task:   &tsk.Task,
 			IsDone: &tsk.IsDone,
 			UserId: &tsk.UserID,
-		}
-		// Используем append для добавления элемента в слайс
-		response = append(response, task)
+		})
 	}
 
-	// Возвращаем сформированный ответ
 	return response, nil
 }
 
 // PostTasks реализует tasks.StrictServerInterface.
-func (h *TaskHandler) PostTasks(_ context.Context, request tasks.PostTasksRequestObject) (tasks.PostTasksResponseObject, error) {
-	// Получаем тело запроса
-	taskRequest := request.Body
-
-	// Создаем задачу для добавления в сервис
+func (h *TaskHandler) PostTasks(_ context.Context, req tasks.PostTasksRequestObject) (tasks.PostTasksResponseObject, error) {
+	taskRequest := req.Body
 	taskToCreate := taskService.Task{
-		Task:   taskRequest.Task, // Передаем строку Task без разыменовывания
+		Task:   taskRequest.Task,
 		IsDone: *taskRequest.IsDone,
 		UserID: taskRequest.UserId,
 	}
 
-	// Создаем задачу через сервис
 	createdTask, err := h.Service.CreateTask(taskToCreate)
 	if err != nil {
-		return nil, err
+		log.Printf("Error creating task: %v", err)
+		return nil, fmt.Errorf("failed to create task")
 	}
 
-	// Формируем ответ с созданной задачей
 	response := tasks.PostTasks201JSONResponse{
-		Id:     &createdTask.UserID,
+		Id:     &createdTask.ID,
 		Task:   &createdTask.Task,
 		IsDone: &createdTask.IsDone,
 		UserId: &createdTask.UserID,
 	}
 
-	// Возвращаем ответ с задачей
 	return response, nil
 }
 
 // DeleteTasks реализует tasks.StrictServerInterface.
-func (h *TaskHandler) DeleteTasks(ctx context.Context, request tasks.DeleteTasksRequestObject) (tasks.DeleteTasksResponseObject, error) {
-	// Получаем ID задачи для удаления
-	id := request.Body.Id
+func (h *TaskHandler) DeleteTasks(_ context.Context, req tasks.DeleteTasksRequestObject) (tasks.DeleteTasksResponseObject, error) {
+	taskID := req.Body.Id
 
-	// Вызываем метод для удаления задачи
-	err := h.Service.DeleteTask(uint(id))
+	err := h.Service.DeleteTask(uint(taskID))
 	if err != nil {
-		return nil, err
+		log.Printf("Error deleting task with ID %d: %v", taskID, err)
+		return tasks.DeleteTasks404Response{}, nil
 	}
 
-	// Формируем ответ о успешном удалении
-	response := tasks.DeleteTasks204Response{}
-
-	// Возвращаем успешный ответ
-	return response, nil
+	return tasks.DeleteTasks204Response{}, nil
 }
 
-// PutTasks реализует tasks.StrictServerInterface.
-func (h *TaskHandler) PutTasks(_ context.Context, request tasks.PutTasksRequestObject) (tasks.PutTasksResponseObject, error) {
-	// Получаем ID задачи из запроса
-	id := *request.Body.UserId // Разыменовываем указатель, чтобы получить ID
+func (h *TaskHandler) PutTasks(_ context.Context, req tasks.PutTasksRequestObject) (tasks.PutTasksResponseObject, error) {
+	taskRequest := req.Body
+	taskID := taskRequest.Id // Убрали разыменование, так как это значение
 
-	taskRequest := request.Body
-
-	// Проверяем, существует ли хотя бы одна задача с таким ID (можно добавить дополнительную проверку)
-	existingTasks, err := h.Service.GetTasksByUserID(uint(id))
+	// Получение задач по userID (предположим, taskID соответствует userID)
+	existingTasks, err := h.Service.GetTasksByUserID(uint(taskID))
 	if err != nil || len(existingTasks) == 0 {
-		// Если задачи не найдены, возвращаем ошибку
-		return nil, fmt.Errorf("task with id %d not found", id)
+		log.Printf("Task with ID %d not found: %v", taskID, err)
+		return tasks.PutTasks404Response{}, nil
 	}
 
-	// Берем первую задачу из списка задач
+	// Предположим, что обновляем первую задачу из списка
 	existingTask := existingTasks[0]
 
-	// Обновляем задачу на основе полученного запроса
-	taskToUpdate := taskService.Task{
-		Task:   taskRequest.Task,    // Обновляем поле Task
-		IsDone: *taskRequest.IsDone, // Обновляем статус IsDone
-		UserID: existingTask.UserID, // Пользователь ID остается тем же
+	// Обновление задачи
+	updatedTask := taskService.Task{
+		ID:     existingTask.ID,     // Используем ID из существующей задачи
+		Task:   taskRequest.Task,    // Новая задача из запроса
+		IsDone: *taskRequest.IsDone, // Новый статус
+		UserID: existingTask.UserID, // Сохраняем исходный UserID
 	}
 
-	// Вызываем метод сервиса для обновления задачи
-	updatedTask, err := h.Service.UpdateTask(uint(id), taskToUpdate)
+	// Вызываем сервис обновления
+	resultTask, err := h.Service.UpdateTask(uint(existingTask.ID), updatedTask)
 	if err != nil {
-		return nil, err
+		log.Printf("Error updating task with ID %d: %v", taskID, err)
+		return nil, fmt.Errorf("failed to update task")
 	}
 
-	// Формируем ответ с обновленной задачей
+	// Формируем ответ
 	response := tasks.PutTasks200JSONResponse{
-		Id:     &updatedTask.UserID, // Возвращаем ID задачи
-		Task:   &updatedTask.Task,   // Обновленное поле задачи
-		IsDone: &updatedTask.IsDone, // Статус задачи
-		UserId: &updatedTask.UserID, // ID пользователя
+		Id:     &resultTask.ID,
+		Task:   &resultTask.Task,
+		IsDone: &resultTask.IsDone,
+		UserId: &resultTask.UserID,
 	}
 
-	// Возвращаем ответ с обновленной задачей
 	return response, nil
 }

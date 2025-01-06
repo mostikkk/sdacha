@@ -5,12 +5,12 @@ info:
 paths:
   /users:
     get:
-      summary: Get all user
+      summary: Get all users
       tags:
         - users
       responses:
         '200':
-          description: A list of user
+          description: A list of users
           content:
             application/json:
               schema:
@@ -35,10 +35,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+  /users/{user_id}:
     put:
       summary: Update an existing user
       tags:
         - users
+      parameters:
+        - name: user_id
+          in: path
+          description: ID of the user to update
+          required: true
+          schema:
+            type: integer
+            format: uint
       requestBody:
         description: The user with updated details
         required: true
@@ -60,13 +69,13 @@ paths:
       tags:
         - users
       parameters:
-        - name: userId
-          in: query
+        - name: user_id
+          in: path
           description: ID of the user to delete
           required: true
           schema:
             type: integer
-            format: uint  
+            format: uint
       responses:
         '204':
           description: User deleted successfully
@@ -85,5 +94,6 @@ components:
           type: string
         password:
           type: string
+
 
 
