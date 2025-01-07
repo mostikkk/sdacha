@@ -27,9 +27,8 @@ func (h *UserHandler) GetUsers(_ context.Context, _ users.GetUsersRequestObject)
 
 	for _, usr := range allUsers {
 		user := users.User{
-			Id:       &usr.ID,
-			Email:    &usr.Email,
-			Password: &usr.Pass,
+			Id:    &usr.ID,
+			Email: &usr.Email,
 		}
 		response = append(response, user)
 	}

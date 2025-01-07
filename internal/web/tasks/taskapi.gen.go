@@ -16,31 +16,53 @@ import (
 
 // CreateTask defines model for CreateTask.
 type CreateTask struct {
-	IsDone *bool  `json:"is_done,omitempty"`
-	Task   string `json:"task"`
-	UserId int    `json:"user_id"`
+	// IsDone Whether the task is marked as done
+	IsDone *bool `json:"is_done,omitempty"`
+
+	// Task The description or title of the task
+	Task string `json:"task"`
+
+	// UserId The ID of the user who is creating the task
+	UserId int `json:"user_id"`
 }
 
 // DeleteTask defines model for DeleteTask.
 type DeleteTask struct {
-	Id     int `json:"id"`
+	// Id The ID of the task to be deleted
+	Id int `json:"id"`
+
+	// UserId The ID of the user who created the task
 	UserId int `json:"user_id"`
 }
 
 // Task defines model for Task.
 type Task struct {
-	Id     *int    `json:"id,omitempty"`
-	IsDone *bool   `json:"is_done,omitempty"`
-	Task   *string `json:"task,omitempty"`
-	UserId *int    `json:"user_id,omitempty"`
+	// Id Unique identifier for the task
+	Id *int `json:"id,omitempty"`
+
+	// IsDone Task completion status
+	IsDone *bool `json:"is_done,omitempty"`
+
+	// Task The description or title of the task
+	Task *string `json:"task,omitempty"`
+
+	// UserId The ID of the user who created the task
+	UserId *int `json:"user_id,omitempty"`
 }
 
 // UpdateTask defines model for UpdateTask.
 type UpdateTask struct {
-	Id     int    `json:"id"`
-	IsDone *bool  `json:"is_done,omitempty"`
-	Task   string `json:"task"`
-	UserId *int   `json:"user_id,omitempty"`
+	// Id The ID of the task to be updated
+	Id int `json:"id"`
+
+	// IsDone The updated task completion status
+	IsDone *bool `json:"is_done,omitempty"`
+
+	// Task The updated description or title of the task
+	Task string `json:"task"`
+
+	// UserId The ID of the user who created the task (may not be updated)
+	UserId *int `json:"user_id,omitempty"`
 }
 
 // DeleteTasksJSONRequestBody defines body for DeleteTasks for application/json ContentType.
@@ -54,9 +76,12 @@ type PostTasksJSONRequestBody = CreateTask
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Delete a task
+	// Delete an existing task
 	// (DELETE /tasks)
 	DeleteTasks(ctx echo.Context) error
+	// Get all tasks
+	// (GET /tasks)
+	GetTasks(ctx echo.Context) error
 	// Update an existing task
 	// (PATCH /tasks)
 	PatchTasks(ctx echo.Context) error
@@ -79,6 +104,15 @@ func (w *ServerInterfaceWrapper) DeleteTasks(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.DeleteTasks(ctx)
+	return err
+}
+
+// GetTasks converts echo context to params.
+func (w *ServerInterfaceWrapper) GetTasks(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetTasks(ctx)
 	return err
 }
 
@@ -145,6 +179,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.DELETE(baseURL+"/tasks", wrapper.DeleteTasks)
+	router.GET(baseURL+"/tasks", wrapper.GetTasks)
 	router.PATCH(baseURL+"/tasks", wrapper.PatchTasks)
 	router.POST(baseURL+"/tasks", wrapper.PostTasks)
 	router.GET(baseURL+"/tasks/:user_id", wrapper.GetTasksUserId)
@@ -171,6 +206,30 @@ type DeleteTasks404Response struct {
 }
 
 func (response DeleteTasks404Response) VisitDeleteTasksResponse(w http.ResponseWriter) error {
+	w.WriteHeader(404)
+	return nil
+}
+
+type GetTasksRequestObject struct {
+}
+
+type GetTasksResponseObject interface {
+	VisitGetTasksResponse(w http.ResponseWriter) error
+}
+
+type GetTasks200JSONResponse []Task
+
+func (response GetTasks200JSONResponse) VisitGetTasksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetTasks404Response struct {
+}
+
+func (response GetTasks404Response) VisitGetTasksResponse(w http.ResponseWriter) error {
 	w.WriteHeader(404)
 	return nil
 }
@@ -244,9 +303,12 @@ func (response GetTasksUserId404Response) VisitGetTasksUserIdResponse(w http.Res
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Delete a task
+	// Delete an existing task
 	// (DELETE /tasks)
 	DeleteTasks(ctx context.Context, request DeleteTasksRequestObject) (DeleteTasksResponseObject, error)
+	// Get all tasks
+	// (GET /tasks)
+	GetTasks(ctx context.Context, request GetTasksRequestObject) (GetTasksResponseObject, error)
 	// Update an existing task
 	// (PATCH /tasks)
 	PatchTasks(ctx context.Context, request PatchTasksRequestObject) (PatchTasksResponseObject, error)
@@ -293,6 +355,29 @@ func (sh *strictHandler) DeleteTasks(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(DeleteTasksResponseObject); ok {
 		return validResponse.VisitDeleteTasksResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetTasks operation middleware
+func (sh *strictHandler) GetTasks(ctx echo.Context) error {
+	var request GetTasksRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTasks(ctx.Request().Context(), request.(GetTasksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTasks")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetTasksResponseObject); ok {
+		return validResponse.VisitGetTasksResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

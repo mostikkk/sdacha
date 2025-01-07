@@ -12,7 +12,7 @@ paths:
         - name: user_id
           in: path
           required: true
-          description: The ID of the user
+          description: The ID of the user for whom tasks are being retrieved
           schema:
             type: integer
       responses:
@@ -27,6 +27,21 @@ paths:
         '404':
           description: User not found or no tasks for this user
   /tasks:
+    get:
+      summary: Get all tasks
+      tags:
+        - tasks
+      responses:
+        '200':
+          description: A list of all tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '404':
+          description: No tasks found
     post:
       summary: Create a new task
       tags:
@@ -64,13 +79,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Task'
         '404':
-          description: Task not found
+          description: Task not found or invalid update request
     delete:
-      summary: Delete a task
+      summary: Delete an existing task
       tags:
         - tasks
       requestBody:
-        description: The task to delete
+        description: The task to delete, including task ID and user ID
         required: true
         content:
           application/json:
@@ -80,8 +95,7 @@ paths:
         '204':
           description: Task deleted successfully
         '404':
-          description: Task not found
-
+          description: Task not found or invalid request
 components:
   schemas:
     Task:
@@ -89,48 +103,58 @@ components:
       properties:
         id:
           type: integer
+          description: Unique identifier for the task
         task:
           type: string
+          description: The description or title of the task
         is_done:
           type: boolean
+          description: Task completion status
         user_id:
           type: integer
-
+          description: The ID of the user who created the task
     CreateTask:
       type: object
       properties:
         task:
           type: string
+          description: The description or title of the task
         is_done:
           type: boolean
+          description: Whether the task is marked as done
         user_id:
           type: integer
+          description: The ID of the user who is creating the task
       required:
         - task
         - user_id
-
     UpdateTask:
       type: object
       properties:
         id:
           type: integer
+          description: The ID of the task to be updated
         task:
           type: string
+          description: The updated description or title of the task
         is_done:
           type: boolean
+          description: The updated task completion status
         user_id:
           type: integer
+          description: The ID of the user who created the task (may not be updated)
       required:
         - id
         - task
-
     DeleteTask:
       type: object
       properties:
         id:
           type: integer
+          description: The ID of the task to be deleted
         user_id:
           type: integer
+          description: The ID of the user who created the task
       required:
         - id
         - user_id

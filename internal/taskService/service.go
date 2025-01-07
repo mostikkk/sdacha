@@ -21,3 +21,7 @@ func (s *TaskService) PathTask(id uint, task Task) (Task, error) {
 func (s *TaskService) DeleteTask(id uint) error {
 	return s.repo.DeleteTaskByID(id)
 }
+func (s *TaskService) GetAllTasks() ([]Task, error) {
+
+	return s.repo.GetAllTasks()
+}

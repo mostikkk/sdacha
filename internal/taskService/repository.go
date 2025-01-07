@@ -6,7 +6,8 @@ type TaskRepository interface {
 	PostTask(task Task) (Task, error)
 	PathTaskByID(id uint, task Task) (Task, error)
 	DeleteTaskByID(id uint) error
-	GetTasksByUserID(userID uint) ([]Task, error) // Новый метод для задач по userID
+	GetTasksByUserID(userID uint) ([]Task, error)
+	GetAllTasks() ([]Task, error)
 }
 
 type taskRepository struct {
@@ -37,4 +38,9 @@ func (r *taskRepository) PathTaskByID(id uint, task Task) (Task, error) {
 }
 func (r *taskRepository) DeleteTaskByID(id uint) error {
 	return r.db.Delete(&Task{}, &id).Error
+}
+func (r *taskRepository) GetAllTasks() ([]Task, error) {
+	var tasks []Task
+	err := r.db.Find(&tasks).Error
+	return tasks, err
 }

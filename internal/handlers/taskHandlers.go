@@ -124,3 +124,26 @@ func (h *TaskHandler) PatchTasks(_ context.Context, req tasks.PatchTasksRequestO
 
 	return response, nil
 }
+
+// GetAllTasks реализует tasks.StrictServerInterface.
+func (h *TaskHandler) GetTasks(_ context.Context, req tasks.GetTasksRequestObject) (tasks.GetTasksResponseObject, error) {
+	// Получаем все задачи через сервис
+	allTasks, err := h.Service.GetAllTasks()
+	if err != nil {
+		log.Printf("Error fetching all tasks: %v", err)
+		return tasks.GetTasks200JSONResponse{}, nil
+	}
+
+	// Формируем ответ
+	var response tasks.GetTasks200JSONResponse
+	for _, tsk := range allTasks {
+		response = append(response, tasks.Task{
+			Id:     &tsk.ID,
+			Task:   &tsk.Task,
+			IsDone: &tsk.IsDone,
+			UserId: &tsk.UserID,
+		})
+	}
+
+	return response, nil
+}
