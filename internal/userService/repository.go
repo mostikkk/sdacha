@@ -5,7 +5,7 @@ import "gorm.io/gorm"
 type UserRepository interface {
 	GetUsers() ([]Users, error)
 	PostUser(user Users) (Users, error)
-	PutUserByID(id uint, users Users) (Users, error)
+	PathUserByID(id uint, users Users) (Users, error)
 	DeleteUserByID(id uint) error
 }
 
@@ -26,7 +26,7 @@ func (ur *usersRepository) PostUser(user Users) (Users, error) {
 	err := ur.db.Create(&user).Error
 	return user, err
 }
-func (ur *usersRepository) PutUserByID(id uint, users Users) (Users, error) {
+func (ur *usersRepository) PathUserByID(id uint, users Users) (Users, error) {
 	err := ur.db.Model(&users).Where("id = ?", id).Updates(users).Error
 	return users, err
 }

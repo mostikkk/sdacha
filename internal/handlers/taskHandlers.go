@@ -51,7 +51,7 @@ func (h *TaskHandler) PostTasks(_ context.Context, req tasks.PostTasksRequestObj
 		UserID: taskRequest.UserId,
 	}
 
-	createdTask, err := h.Service.CreateTask(taskToCreate)
+	createdTask, err := h.Service.PostTask(taskToCreate)
 	if err != nil {
 		log.Printf("Error creating task: %v", err)
 		return nil, fmt.Errorf("failed to create task")
@@ -80,7 +80,7 @@ func (h *TaskHandler) DeleteTasks(_ context.Context, req tasks.DeleteTasksReques
 	return tasks.DeleteTasks204Response{}, nil
 }
 
-func (h *TaskHandler) PutTasks(_ context.Context, req tasks.PutTasksRequestObject) (tasks.PutTasksResponseObject, error) {
+func (h *TaskHandler) PatchTasks(_ context.Context, req tasks.PatchTasksRequestObject) (tasks.PatchTasksResponseObject, error) {
 	taskRequest := req.Body
 	taskID := taskRequest.Id // Убрали разыменование, так как это значение
 
@@ -88,7 +88,7 @@ func (h *TaskHandler) PutTasks(_ context.Context, req tasks.PutTasksRequestObjec
 	existingTasks, err := h.Service.GetTasksByUserID(uint(taskID))
 	if err != nil || len(existingTasks) == 0 {
 		log.Printf("Task with ID %d not found: %v", taskID, err)
-		return tasks.PutTasks404Response{}, nil
+		return tasks.PatchTasks404Response{}, nil
 	}
 
 	// Предположим, что обновляем первую задачу из списка
@@ -103,14 +103,14 @@ func (h *TaskHandler) PutTasks(_ context.Context, req tasks.PutTasksRequestObjec
 	}
 
 	// Вызываем сервис обновления
-	resultTask, err := h.Service.UpdateTask(uint(existingTask.ID), updatedTask)
+	resultTask, err := h.Service.PathTask(uint(existingTask.ID), updatedTask)
 	if err != nil {
 		log.Printf("Error updating task with ID %d: %v", taskID, err)
 		return nil, fmt.Errorf("failed to update task")
 	}
 
 	// Формируем ответ
-	response := tasks.PutTasks200JSONResponse{
+	response := tasks.PatchTasks200JSONResponse{
 		Id:     &resultTask.ID,
 		Task:   &resultTask.Task,
 		IsDone: &resultTask.IsDone,

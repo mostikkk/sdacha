@@ -45,7 +45,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task'
-    put:
+    patch:
       summary: Update an existing task
       tags:
         - tasks
@@ -134,6 +134,20 @@ components:
       required:
         - id
         - user_id
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -14,8 +14,8 @@ func (s *UserService) GetUsers() ([]Users, error) {
 func (s *UserService) PostUser(user Users) (Users, error) {
 	return s.repo.PostUser(user)
 }
-func (s *UserService) PutUserByID(id uint, users Users) (Users, error) {
-	return s.repo.PutUserByID(id, users)
+func (s *UserService) PathUserByID(id uint, users Users) (Users, error) {
+	return s.repo.PathUserByID(id, users)
 }
 func (s *UserService) DeleteUserByID(id uint) error {
 	return s.repo.DeleteUserByID(id)

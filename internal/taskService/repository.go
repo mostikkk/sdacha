@@ -3,8 +3,8 @@ package taskService
 import "gorm.io/gorm"
 
 type TaskRepository interface {
-	CreateTask(task Task) (Task, error)
-	UpdateTaskByID(id uint, task Task) (Task, error)
+	PostTask(task Task) (Task, error)
+	PathTaskByID(id uint, task Task) (Task, error)
 	DeleteTaskByID(id uint) error
 	GetTasksByUserID(userID uint) ([]Task, error) // Новый метод для задач по userID
 }
@@ -18,7 +18,7 @@ func NewTaskRepository(db *gorm.DB) *taskRepository {
 }
 
 // (r *taskRepository) привязывает данную функцию к нашему репозиторию
-func (r *taskRepository) CreateTask(task Task) (Task, error) {
+func (r *taskRepository) PostTask(task Task) (Task, error) {
 	result := r.db.Create(&task)
 	if result.Error != nil {
 		return Task{}, result.Error
@@ -31,7 +31,7 @@ func (r *taskRepository) GetTasksByUserID(userID uint) ([]Task, error) {
 	return tasks, err
 }
 
-func (r *taskRepository) UpdateTaskByID(id uint, task Task) (Task, error) {
+func (r *taskRepository) PathTaskByID(id uint, task Task) (Task, error) {
 	err := r.db.First(&task, &id).Error
 	return task, err
 }
