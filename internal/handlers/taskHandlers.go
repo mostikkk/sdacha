@@ -82,28 +82,33 @@ func (h *TaskHandler) DeleteTasks(_ context.Context, req tasks.DeleteTasksReques
 
 func (h *TaskHandler) PatchTasks(_ context.Context, req tasks.PatchTasksRequestObject) (tasks.PatchTasksResponseObject, error) {
 	taskRequest := req.Body
-	taskID := taskRequest.Id // Убрали разыменование, так как это значение
+	taskID := taskRequest.Id // ID задачи из запроса
 
-	// Получение задач по userID (предположим, taskID соответствует userID)
-	existingTasks, err := h.Service.GetTasksByUserID(uint(taskID))
-	if err != nil || len(existingTasks) == 0 {
-		log.Printf("Task with ID %d not found: %v", taskID, err)
-		return tasks.PatchTasks404Response{}, nil
+	// Проверка, если taskRequest.UserId не nil, и приведение типа к uint
+	if taskRequest.UserId == nil {
+		return tasks.PatchTasks200JSONResponse{}, fmt.Errorf("UserId cannot be nil")
 	}
 
-	// Предположим, что обновляем первую задачу из списка
+	// Получение задач по userId (приводим taskRequest.UserId к uint)
+	existingTasks, err := h.Service.GetTasksByUserID(uint(*taskRequest.UserId)) // Приводим к uint
+	if err != nil || len(existingTasks) == 0 {
+		log.Printf("Task with ID %d not found: %v", taskID, err)
+		return tasks.PatchTasks404Response{}, nil // Возвращаем 404, если задачи не найдены
+	}
+
+	// Предположим, что обновляем первую задачу из списка (если их несколько)
 	existingTask := existingTasks[0]
 
 	// Обновление задачи
 	updatedTask := taskService.Task{
-		ID:     existingTask.ID,     // Используем ID из существующей задачи
-		Task:   taskRequest.Task,    // Новая задача из запроса
-		IsDone: *taskRequest.IsDone, // Новый статус
+		ID:     existingTask.ID,     // Сохраняем исходный ID
+		Task:   taskRequest.Task,    // Новое описание задачи
+		IsDone: *taskRequest.IsDone, // Новый статус выполнения
 		UserID: existingTask.UserID, // Сохраняем исходный UserID
 	}
 
-	// Вызываем сервис обновления
-	resultTask, err := h.Service.PathTask(uint(existingTask.ID), updatedTask)
+	// Вызываем сервис обновления задачи
+	resultTask, err := h.Service.PathTask(uint(existingTask.ID), updatedTask) // Метод для обновления
 	if err != nil {
 		log.Printf("Error updating task with ID %d: %v", taskID, err)
 		return nil, fmt.Errorf("failed to update task")
@@ -111,10 +116,10 @@ func (h *TaskHandler) PatchTasks(_ context.Context, req tasks.PatchTasksRequestO
 
 	// Формируем ответ
 	response := tasks.PatchTasks200JSONResponse{
-		Id:     &resultTask.ID,
-		Task:   &resultTask.Task,
-		IsDone: &resultTask.IsDone,
-		UserId: &resultTask.UserID,
+		Id:     &resultTask.ID,     // ID обновленной задачи
+		Task:   &resultTask.Task,   // Обновленное описание задачи
+		IsDone: &resultTask.IsDone, // Новый статус выполнения
+		UserId: &resultTask.UserID, // ID пользователя
 	}
 
 	return response, nil
