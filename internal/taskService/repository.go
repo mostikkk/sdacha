@@ -8,6 +8,7 @@ type TaskRepository interface {
 	DeleteTaskByID(id uint) error
 	GetTasksByUserID(userID uint) ([]Task, error)
 	GetAllTasks() ([]Task, error)
+	GetTaskByID(id uint, task *Task) error
 }
 
 type taskRepository struct {
@@ -43,4 +44,7 @@ func (r *taskRepository) GetAllTasks() ([]Task, error) {
 	var tasks []Task
 	err := r.db.Find(&tasks).Error
 	return tasks, err
+}
+func (r *taskRepository) GetTaskByID(id uint, task *Task) error {
+	return r.db.First(task, id).Error
 }

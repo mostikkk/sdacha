@@ -25,3 +25,11 @@ func (s *TaskService) GetAllTasks() ([]Task, error) {
 
 	return s.repo.GetAllTasks()
 }
+func (s *TaskService) GetTaskByID(id uint) (Task, error) {
+	var task Task
+	err := s.repo.GetTaskByID(id, &task)
+	if err != nil {
+		return Task{}, err
+	}
+	return task, nil
+}

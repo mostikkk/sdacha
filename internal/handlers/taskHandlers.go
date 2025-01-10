@@ -2,35 +2,36 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"obuch/internal/taskService"
 	"obuch/internal/web/tasks"
+
+	"gorm.io/gorm"
 )
 
 type TaskHandler struct {
 	Service *taskService.TaskService
 }
 
-// NewTaskHandler создает новый TaskHandler с привязанным сервисом задач
+// NewTaskHandler создает новый TaskHandler с привязанным сервисом задач.
 func NewTaskHandler(service *taskService.TaskService) *TaskHandler {
 	return &TaskHandler{
 		Service: service,
 	}
 }
 
-// GetTasksUserId реализует tasks.StrictServerInterface.
-func (h *TaskHandler) GetTasksUserId(_ context.Context, req tasks.GetTasksUserIdRequestObject) (tasks.GetTasksUserIdResponseObject, error) {
-	userID := req.UserId
-
-	userTasks, err := h.Service.GetTasksByUserID(uint(userID))
+// GetTasks реализует tasks.StrictServerInterface.
+func (h *TaskHandler) GetTasks(_ context.Context, _ tasks.GetTasksRequestObject) (tasks.GetTasksResponseObject, error) {
+	allTasks, err := h.Service.GetAllTasks()
 	if err != nil {
-		log.Printf("Error fetching tasks for user %d: %v", userID, err)
-		return tasks.GetTasksUserId404Response{}, nil
+		log.Printf("Error fetching all tasks: %v", err)
+		return nil, fmt.Errorf("failed to fetch tasks")
 	}
 
-	var response tasks.GetTasksUserId200JSONResponse
-	for _, tsk := range userTasks {
+	var response tasks.GetTasks200JSONResponse
+	for _, tsk := range allTasks {
 		response = append(response, tasks.Task{
 			Id:     &tsk.ID,
 			Task:   &tsk.Task,
@@ -45,6 +46,10 @@ func (h *TaskHandler) GetTasksUserId(_ context.Context, req tasks.GetTasksUserId
 // PostTasks реализует tasks.StrictServerInterface.
 func (h *TaskHandler) PostTasks(_ context.Context, req tasks.PostTasksRequestObject) (tasks.PostTasksResponseObject, error) {
 	taskRequest := req.Body
+	if taskRequest.IsDone == nil {
+		return nil, fmt.Errorf("is_done field is required")
+	}
+
 	taskToCreate := taskService.Task{
 		Task:   taskRequest.Task,
 		IsDone: *taskRequest.IsDone,
@@ -67,76 +72,87 @@ func (h *TaskHandler) PostTasks(_ context.Context, req tasks.PostTasksRequestObj
 	return response, nil
 }
 
-// DeleteTasks реализует tasks.StrictServerInterface.
-func (h *TaskHandler) DeleteTasks(_ context.Context, req tasks.DeleteTasksRequestObject) (tasks.DeleteTasksResponseObject, error) {
-	taskID := req.Body.Id
+// GetTasksTaskId реализует tasks.StrictServerInterface.
+func (h *TaskHandler) GetTasksTaskId(_ context.Context, req tasks.GetTasksTaskIdRequestObject) (tasks.GetTasksTaskIdResponseObject, error) {
+	// Получение ID задачи из запроса
+	taskID := req.TaskId
 
-	err := h.Service.DeleteTask(uint(taskID))
+	// Запрос задачи через сервис
+	task, err := h.Service.GetTaskByID(uint(taskID))
 	if err != nil {
-		log.Printf("Error deleting task with ID %d: %v", taskID, err)
-		return tasks.DeleteTasks404Response{}, nil
+		log.Printf("Error fetching task with ID %d: %v", taskID, err)
+
+		// Проверка на ошибку "не найдено"
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return tasks.GetTasksTaskId404Response{}, nil
+		}
+
+		return nil, err
 	}
 
-	return tasks.DeleteTasks204Response{}, nil
-}
-
-func (h *TaskHandler) PatchTasks(_ context.Context, req tasks.PatchTasksRequestObject) (tasks.PatchTasksResponseObject, error) {
-	taskRequest := req.Body
-	taskID := taskRequest.Id // ID задачи из запроса
-
-	// Проверка, если taskRequest.UserId не nil, и приведение типа к uint
-	if taskRequest.UserId == nil {
-		return tasks.PatchTasks200JSONResponse{}, fmt.Errorf("UserId cannot be nil")
-	}
-
-	// Получение задач по userId (приводим taskRequest.UserId к uint)
-	existingTasks, err := h.Service.GetTasksByUserID(uint(*taskRequest.UserId)) // Приводим к uint
-	if err != nil || len(existingTasks) == 0 {
-		log.Printf("Task with ID %d not found: %v", taskID, err)
-		return tasks.PatchTasks404Response{}, nil // Возвращаем 404, если задачи не найдены
-	}
-
-	// Предположим, что обновляем первую задачу из списка (если их несколько)
-	existingTask := existingTasks[0]
-
-	// Обновление задачи
-	updatedTask := taskService.Task{
-		ID:     existingTask.ID,     // Сохраняем исходный ID
-		Task:   taskRequest.Task,    // Новое описание задачи
-		IsDone: *taskRequest.IsDone, // Новый статус выполнения
-		UserID: existingTask.UserID, // Сохраняем исходный UserID
-	}
-
-	// Вызываем сервис обновления задачи
-	resultTask, err := h.Service.PathTask(uint(existingTask.ID), updatedTask) // Метод для обновления
-	if err != nil {
-		log.Printf("Error updating task with ID %d: %v", taskID, err)
-		return nil, fmt.Errorf("failed to update task")
-	}
-
-	// Формируем ответ
-	response := tasks.PatchTasks200JSONResponse{
-		Id:     &resultTask.ID,     // ID обновленной задачи
-		Task:   &resultTask.Task,   // Обновленное описание задачи
-		IsDone: &resultTask.IsDone, // Новый статус выполнения
-		UserId: &resultTask.UserID, // ID пользователя
+	// Формирование успешного ответа
+	response := tasks.GetTasksTaskId200JSONResponse{
+		Id:     &task.ID,
+		Task:   &task.Task,
+		IsDone: &task.IsDone,
+		UserId: &task.UserID,
 	}
 
 	return response, nil
 }
 
-// GetAllTasks реализует tasks.StrictServerInterface.
-func (h *TaskHandler) GetTasks(_ context.Context, req tasks.GetTasksRequestObject) (tasks.GetTasksResponseObject, error) {
-	// Получаем все задачи через сервис
-	allTasks, err := h.Service.GetAllTasks()
+// DeleteTasksTaskId реализует tasks.StrictServerInterface.
+func (h *TaskHandler) DeleteTasksTaskId(_ context.Context, req tasks.DeleteTasksTaskIdRequestObject) (tasks.DeleteTasksTaskIdResponseObject, error) {
+	taskID := req.TaskId
+
+	err := h.Service.DeleteTask(uint(taskID))
 	if err != nil {
-		log.Printf("Error fetching all tasks: %v", err)
-		return tasks.GetTasks200JSONResponse{}, nil
+		log.Printf("Error deleting task with ID %d: %v", taskID, err)
+		return tasks.DeleteTasksTaskId404Response{}, nil
 	}
 
-	// Формируем ответ
-	var response tasks.GetTasks200JSONResponse
-	for _, tsk := range allTasks {
+	return tasks.DeleteTasksTaskId204Response{}, nil
+}
+
+// PatchTasksTaskId реализует tasks.StrictServerInterface.
+func (h *TaskHandler) PatchTasksTaskId(_ context.Context, req tasks.PatchTasksTaskIdRequestObject) (tasks.PatchTasksTaskIdResponseObject, error) {
+	taskID := req.TaskId
+	taskRequest := req.Body
+
+	updatedTask := taskService.Task{
+		ID:     taskID,
+		Task:   taskRequest.Task,
+		IsDone: taskRequest.IsDone,
+	}
+
+	resultTask, err := h.Service.PathTask(uint(taskID), updatedTask)
+	if err != nil {
+		log.Printf("Error updating task with ID %d: %v", taskID, err)
+		return tasks.PatchTasksTaskId404Response{}, nil
+	}
+
+	response := tasks.PatchTasksTaskId200JSONResponse{
+		Id:     &resultTask.ID,
+		Task:   &resultTask.Task,
+		IsDone: &resultTask.IsDone,
+		UserId: &resultTask.UserID,
+	}
+
+	return response, nil
+}
+
+// GetTasksUserUserId реализует tasks.StrictServerInterface.
+func (h *TaskHandler) GetTasksUserUserId(_ context.Context, req tasks.GetTasksUserUserIdRequestObject) (tasks.GetTasksUserUserIdResponseObject, error) {
+	userID := req.UserId
+
+	userTasks, err := h.Service.GetTasksByUserID(uint(userID))
+	if err != nil {
+		log.Printf("Error fetching tasks for user %d: %v", userID, err)
+		return nil, fmt.Errorf("failed to fetch user tasks")
+	}
+
+	var response tasks.GetTasksUserUserId200JSONResponse
+	for _, tsk := range userTasks {
 		response = append(response, tasks.Task{
 			Id:     &tsk.ID,
 			Task:   &tsk.Task,

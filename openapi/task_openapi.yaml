@@ -3,29 +3,6 @@ info:
   title: Task Management API
   version: 1.0.0
 paths:
-  /tasks/{user_id}:
-    get:
-      summary: Get tasks for a specific user
-      tags:
-        - tasks
-      parameters:
-        - name: user_id
-          in: path
-          required: true
-          description: The ID of the user for whom tasks are being retrieved
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: A list of tasks for the specified user
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Task'
-        '404':
-          description: User not found or no tasks for this user
   /tasks:
     get:
       summary: Get all tasks
@@ -60,10 +37,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task'
-    patch:
-      summary: Update an existing task
+  /tasks/{task_id}:
+    get:
+      summary: Get a task by ID
       tags:
         - tasks
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          description: The ID of the task to retrieve
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: The task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+    patch:
+      summary: Update a task by ID
+      tags:
+        - tasks
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          description: The ID of the task to update
+          schema:
+            type: integer
       requestBody:
         description: The task with updated details
         required: true
@@ -81,21 +86,44 @@ paths:
         '404':
           description: Task not found or invalid update request
     delete:
-      summary: Delete an existing task
+      summary: Delete a task by ID
       tags:
         - tasks
-      requestBody:
-        description: The task to delete, including task ID and user ID
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DeleteTask'
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          description: The ID of the task to delete
+          schema:
+            type: integer
       responses:
         '204':
           description: Task deleted successfully
         '404':
           description: Task not found or invalid request
+  /tasks/user/{user_id}:
+    get:
+      summary: Get tasks for a specific user
+      tags:
+        - tasks
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: The ID of the user for whom tasks are being retrieved
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of tasks for the specified user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '404':
+          description: User not found or no tasks for this user
 components:
   schemas:
     Task:
@@ -131,33 +159,16 @@ components:
     UpdateTask:
       type: object
       properties:
-        id:
-          type: integer
-          description: The ID of the task to be updated
         task:
           type: string
           description: The updated description or title of the task
         is_done:
           type: boolean
           description: The updated task completion status
-        user_id:
-          type: integer
-          description: The ID of the user who created the task (may not be updated)
       required:
-        - id
         - task
-    DeleteTask:
-      type: object
-      properties:
-        id:
-          type: integer
-          description: The ID of the task to be deleted
-        user_id:
-          type: integer
-          description: The ID of the user who created the task
-      required:
-        - id
-        - user_id
+        - is_done
+
 
 
 
