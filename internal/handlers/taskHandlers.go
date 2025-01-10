@@ -154,7 +154,6 @@ func (h *TaskHandler) GetTasksUserUserId(_ context.Context, req tasks.GetTasksUs
 	var response tasks.GetTasksUserUserId200JSONResponse
 	for _, tsk := range userTasks {
 		response = append(response, tasks.Task{
-			Id:     &tsk.ID,
 			Task:   &tsk.Task,
 			IsDone: &tsk.IsDone,
 			UserId: &tsk.UserID,
