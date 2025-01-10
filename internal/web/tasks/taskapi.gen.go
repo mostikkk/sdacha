@@ -195,7 +195,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 
 	router.GET(baseURL+"/tasks", wrapper.GetTasks)
 	router.POST(baseURL+"/tasks", wrapper.PostTasks)
-	router.GET(baseURL+"/tasks/user/:user_id", wrapper.GetTasksUserUserId)
+	router.GET(baseURL+"/user/:user_id/tasks", wrapper.GetTasksUserUserId)
 	router.DELETE(baseURL+"/tasks/:task_id", wrapper.DeleteTasksTaskId)
 	router.GET(baseURL+"/tasks/:task_id", wrapper.GetTasksTaskId)
 	router.PATCH(baseURL+"/tasks/:task_id", wrapper.PatchTasksTaskId)
